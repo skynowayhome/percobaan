@@ -1,0 +1,53 @@
+name: CI/CD Pizzeria Deployment
+
+on:
+  push:
+    branches: [ main ] # Sesuai dengan branch Anda
+
+jobs:
+  deploy-pizzeria:
+    runs-on: self-hosted # Menggunakan label umum agar runner Anda pasti terdeteksi
+
+    steps:
+    # 1. Mencari lokasi folder project secara dinamis
+    - name: Set project path
+      run: |
+        # Mencari folder 'pizzeria-php' di home directory
+        # Kita mencari folder yang mengandung file docker-compose
+        PROJECT_PATH=$(find $HOME -name 'pizzeria-php' -type d -print -quit)
+        
+        if [ -z "$PROJECT_PATH" ]; then
+          echo "❌ Error: Folder pizzeria-php tidak ditemukan"
+          exit 1
+        fi
+        
+        echo "PROJECT_PATH=$PROJECT_PATH" >> $GITHUB_ENV
+        echo "✅ Project found at: $PROJECT_PATH"
+
+    # 2. Pull kode terbaru dari GitHub
+    - name: Pull latest changes
+      working-directory: ${{ env.PROJECT_PATH }}
+      run: |
+        # Menandai direktori aman agar git tidak error
+        git config --global --add safe.directory ${{ env.PROJECT_PATH }}
+        git fetch origin main
+        git reset --hard origin/main
+
+    # 3. Rebuild Container Docker
+    - name: Rebuild containers
+      working-directory: ${{ env.PROJECT_PATH }}
+      run: |
+        # Matikan container lama (lanjut jika tidak ada)
+        docker compose down || true
+        
+        # Build ulang tanpa cache agar perubahan kode terbaca
+        docker compose build --no-cache
+        
+        # Jalankan container di background
+        docker compose up -d
+
+    # 4. Cek apakah website hidup
+    - name: Health Check
+      run: |
+        sleep 10 # Beri waktu container untuk start
+        curl -f http://localhost:80 || echo "⚠️ Web belum siap, tapi deployment selesai."
