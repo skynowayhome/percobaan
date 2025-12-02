@@ -4,8 +4,8 @@
 // variable nyimpen detail server database
 $servername = "mysql";
 $username = "root"; // Username default XAMPP
-$password = "password"; // Password default XAMPP kosong
-$dbname = "pizzeria_db";
+$password = "root"; // Password default XAMPP kosong
+$dbname = "pizzeria";
 
 // Membuat koneksi
 $conn = new mysqli($servername, $username, $password, $dbname);
